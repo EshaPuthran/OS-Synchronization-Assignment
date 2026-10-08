@@ -1,0 +1,786 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Dining Philosophers - Semaphore Simulation</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background: #101827;
+    color: white;
+    text-align: center;
+}
+
+h1 {
+    color: #8ec5ff;
+}
+
+.subtitle {
+    color: #aab8ca;
+}
+
+.dashboard {
+    max-width: 1200px;
+    margin: 20px auto;
+
+    display: grid;
+    grid-template-columns: minmax(480px, 1fr) 330px;
+    gap: 20px;
+}
+
+.simulation,
+.side-panel {
+    background: #1b293c;
+    padding: 20px;
+    border-radius: 18px;
+}
+
+.table {
+    position: relative;
+    width: 500px;
+    height: 460px;
+    max-width: 100%;
+    margin: auto;
+}
+
+.circle {
+    position: absolute;
+    width: 250px;
+    height: 250px;
+
+    border-radius: 50%;
+    background: #30435c;
+    border: 8px solid #536d8e;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.philosopher {
+    position: absolute;
+
+    width: 115px;
+    min-height: 80px;
+
+    padding: 10px 5px;
+
+    border-radius: 15px;
+    border: 2px solid #64748b;
+
+    z-index: 3;
+
+    font-size: 13px;
+    font-weight: bold;
+
+    transition: transform 0.4s ease,
+                background 0.3s ease,
+                box-shadow 0.3s ease;
+}
+
+#p0 {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+#p1 {
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#p2 {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+#p3 {
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Neighbour movement */
+
+#p0.leaning {
+    transform: translate(-50%, 18px);
+}
+
+#p1.leaning {
+    transform: translate(-18px, -50%);
+}
+
+#p2.leaning {
+    transform: translate(-50%, -18px);
+}
+
+#p3.leaning {
+    transform: translate(18px, -50%);
+}
+
+/* Philosopher states */
+
+.thinking {
+    background: #286b83;
+}
+
+.hungry {
+    background: #a87521;
+}
+
+.waiting {
+    background: #a34b35;
+    box-shadow: 0 0 14px #a34b35;
+}
+
+.holding {
+    background: #53658d;
+}
+
+.eating {
+    background: #23875b;
+    box-shadow: 0 0 18px #23875b;
+    animation: pulse 0.8s infinite alternate;
+}
+
+.releasing {
+    background: #6956a5;
+}
+
+.finished {
+    background: #475569;
+}
+
+@keyframes pulse {
+    from { box-shadow: 0 0 4px #23875b; }
+    to { box-shadow: 0 0 22px #42df91; }
+}
+
+/* Forks */
+
+.fork {
+    position: absolute;
+
+    width: 85px;
+    padding: 12px 4px;
+
+    border-radius: 10px;
+    border: 2px solid #a9b8ca;
+
+    background: #64748b;
+
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+
+    z-index: 4;
+
+    transition: transform 0.4s ease,
+                background 0.3s ease;
+}
+
+.fork.held {
+    background: #e4a83c;
+    border-color: #ffe1a0;
+    color: #18202c;
+}
+
+#f0 {
+    top: 100px;
+    right: 85px;
+}
+
+#f1 {
+    bottom: 100px;
+    right: 85px;
+}
+
+#f2 {
+    bottom: 100px;
+    left: 85px;
+}
+
+#f3 {
+    top: 100px;
+    left: 85px;
+}
+
+.controls {
+    margin: 12px;
+}
+
+button {
+    padding: 11px 16px;
+    margin: 5px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #4285d4;
+    color: white;
+
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #65a4ed;
+}
+
+select {
+    padding: 8px;
+    border-radius: 7px;
+}
+
+#counter {
+    color: #8ec5ff;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.status {
+    background: #29394e;
+    padding: 11px;
+    margin: 8px 0;
+    border-radius: 9px;
+    text-align: left;
+    font-size: 13px;
+}
+
+.wait-label {
+    color: #ffc66d;
+}
+
+.hold-label {
+    color: #8ec5ff;
+}
+
+#log {
+    background: #111c2c;
+    border-radius: 10px;
+    padding: 12px;
+
+    height: 230px;
+    overflow-y: auto;
+
+    text-align: left;
+    font-size: 12px;
+}
+
+#log p {
+    padding-bottom: 6px;
+    border-bottom: 1px solid #29394e;
+}
+
+@media(max-width: 900px) {
+
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Dining Philosophers Problem</h1>
+
+<p class="subtitle">
+Semaphore-Based Synchronization |
+4 Philosophers | 4 Forks
+</p>
+
+<div class="dashboard">
+
+<div class="simulation">
+
+<h2>Dining Table</h2>
+
+<div class="table">
+
+<div class="circle">
+DINING TABLE
+</div>
+
+<div class="philosopher thinking" id="p0">
+P0<br>Thinking
+</div>
+
+<div class="philosopher thinking" id="p1">
+P1<br>Thinking
+</div>
+
+<div class="philosopher thinking" id="p2">
+P2<br>Thinking
+</div>
+
+<div class="philosopher thinking" id="p3">
+P3<br>Thinking
+</div>
+
+<div class="fork" id="f0">F0<br>Free</div>
+<div class="fork" id="f1">F1<br>Free</div>
+<div class="fork" id="f2">F2<br>Free</div>
+<div class="fork" id="f3">F3<br>Free</div>
+
+</div>
+
+<div class="controls">
+
+<button onclick="play()">▶ Play</button>
+
+<button onclick="pause()">Ⅱ Pause</button>
+
+<button onclick="next()">Next Event</button>
+
+<button onclick="restart()">↻ Restart</button>
+
+</div>
+
+<label for="speed">Playback speed:</label>
+
+<select id="speed" onchange="changeSpeed()">
+    <option value="1600">Slow</option>
+    <option value="850" selected>Normal</option>
+    <option value="400">Fast</option>
+</select>
+
+<p id="counter">Event 0</p>
+
+</div>
+
+<div class="side-panel">
+
+<h2>Philosopher Status</h2>
+
+<div id="statuses"></div>
+
+<h3>Fork Ownership</h3>
+
+<div id="forkInfo"></div>
+
+<h3>Execution Log</h3>
+
+<div id="log"></div>
+
+</div>
+
+</div>
+
+
+<script>
+
+const events = [{"step": 1, "philosopher": 0, "state": "Thinking", "message": "P0 is THINKING", "philosophers": ["Thinking", "Thinking", "Thinking", "Thinking"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 2, "philosopher": 1, "state": "Thinking", "message": "P1 is THINKING", "philosophers": ["Thinking", "Thinking", "Thinking", "Thinking"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 3, "philosopher": 2, "state": "Thinking", "message": "P2 is THINKING", "philosophers": ["Thinking", "Thinking", "Thinking", "Thinking"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 4, "philosopher": 3, "state": "Thinking", "message": "P3 is THINKING", "philosophers": ["Thinking", "Thinking", "Thinking", "Thinking"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 5, "philosopher": 1, "state": "Hungry", "message": "P1 is HUNGRY (Round 1)", "philosophers": ["Thinking", "Hungry", "Thinking", "Thinking"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 6, "philosopher": 1, "state": "Hungry", "message": "P1 is REQUESTING room access (FIFO queue).", "philosophers": ["Thinking", "Hungry", "Thinking", "Thinking"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 7, "philosopher": 1, "state": "Hungry", "message": "P1 ENTERED the room. Room FIFO ticket: 0. Current room occupancy: 1/3.", "philosophers": ["Thinking", "Hungry", "Thinking", "Thinking"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 8, "philosopher": 1, "state": "Waiting", "message": "P1 is WAITING for F0 while holding []", "philosophers": ["Thinking", "Waiting", "Thinking", "Thinking"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, 0, null, null], "rounds": [0, 0, 0, 0]}, {"step": 9, "philosopher": 1, "state": "Holding", "message": "P1 successfully acquired F0. FIFO ticket 0. Exclusive ownership verified.", "philosophers": ["Thinking", "Holding", "Thinking", "Thinking"], "forks": [1, null, null, null], "held_forks": [[], [0], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 10, "philosopher": 1, "state": "Waiting", "message": "P1 is WAITING for F1 while holding [0]", "philosophers": ["Thinking", "Waiting", "Thinking", "Thinking"], "forks": [1, null, null, null], "held_forks": [[], [0], [], []], "waiting_for": [null, 1, null, null], "rounds": [0, 0, 0, 0]}, {"step": 11, "philosopher": 1, "state": "Holding", "message": "P1 successfully acquired F1. FIFO ticket 0. Exclusive ownership verified.", "philosophers": ["Thinking", "Holding", "Thinking", "Thinking"], "forks": [1, 1, null, null], "held_forks": [[], [0, 1], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 12, "philosopher": 1, "state": "Eating", "message": "P1 acquired F0 and F1. P1 is EATING.", "philosophers": ["Thinking", "Eating", "Thinking", "Thinking"], "forks": [1, 1, null, null], "held_forks": [[], [0, 1], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 13, "philosopher": 0, "state": "Hungry", "message": "P0 is HUNGRY (Round 1)", "philosophers": ["Hungry", "Eating", "Thinking", "Thinking"], "forks": [1, 1, null, null], "held_forks": [[], [0, 1], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 14, "philosopher": 0, "state": "Hungry", "message": "P0 is REQUESTING room access (FIFO queue).", "philosophers": ["Hungry", "Eating", "Thinking", "Thinking"], "forks": [1, 1, null, null], "held_forks": [[], [0, 1], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 15, "philosopher": 0, "state": "Hungry", "message": "P0 ENTERED the room. Room FIFO ticket: 1. Current room occupancy: 2/3.", "philosophers": ["Hungry", "Eating", "Thinking", "Thinking"], "forks": [1, 1, null, null], "held_forks": [[], [0, 1], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 16, "philosopher": 0, "state": "Waiting", "message": "P0 is WAITING for F3 while holding []", "philosophers": ["Waiting", "Eating", "Thinking", "Thinking"], "forks": [1, 1, null, null], "held_forks": [[], [0, 1], [], []], "waiting_for": [3, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 17, "philosopher": 0, "state": "Holding", "message": "P0 successfully acquired F3. FIFO ticket 0. Exclusive ownership verified.", "philosophers": ["Holding", "Eating", "Thinking", "Thinking"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [null, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 18, "philosopher": 0, "state": "Waiting", "message": "P0 is WAITING for F0 while holding [3]", "philosophers": ["Waiting", "Eating", "Thinking", "Thinking"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 19, "philosopher": 2, "state": "Hungry", "message": "P2 is HUNGRY (Round 1)", "philosophers": ["Waiting", "Eating", "Hungry", "Thinking"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 20, "philosopher": 2, "state": "Hungry", "message": "P2 is REQUESTING room access (FIFO queue).", "philosophers": ["Waiting", "Eating", "Hungry", "Thinking"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 21, "philosopher": 2, "state": "Hungry", "message": "P2 ENTERED the room. Room FIFO ticket: 2. Current room occupancy: 3/3.", "philosophers": ["Waiting", "Eating", "Hungry", "Thinking"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, null, null], "rounds": [0, 0, 0, 0]}, {"step": 22, "philosopher": 2, "state": "Waiting", "message": "P2 is WAITING for F1 while holding []", "philosophers": ["Waiting", "Eating", "Waiting", "Thinking"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, 1, null], "rounds": [0, 0, 0, 0]}, {"step": 23, "philosopher": 3, "state": "Hungry", "message": "P3 is HUNGRY (Round 1)", "philosophers": ["Waiting", "Eating", "Waiting", "Hungry"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, 1, null], "rounds": [0, 0, 0, 0]}, {"step": 24, "philosopher": 3, "state": "Hungry", "message": "P3 is REQUESTING room access (FIFO queue).", "philosophers": ["Waiting", "Eating", "Waiting", "Hungry"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, 1, null], "rounds": [0, 0, 0, 0]}, {"step": 25, "philosopher": 1, "state": "Releasing", "message": "P1 is RELEASING both forks", "philosophers": ["Waiting", "Releasing", "Waiting", "Hungry"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, 1, null], "rounds": [0, 0, 0, 0]}, {"step": 26, "philosopher": 1, "state": "Releasing", "message": "P1 released F1. Fork is now FREE.", "philosophers": ["Waiting", "Releasing", "Waiting", "Hungry"], "forks": [1, null, null, 0], "held_forks": [[3], [0], [], []], "waiting_for": [0, null, 1, null], "rounds": [0, 0, 0, 0]}, {"step": 27, "philosopher": 1, "state": "Releasing", "message": "P1 released F0. Fork is now FREE.", "philosophers": ["Waiting", "Releasing", "Waiting", "Hungry"], "forks": [null, null, null, 0], "held_forks": [[3], [], [], []], "waiting_for": [0, null, 1, null], "rounds": [0, 0, 0, 0]}, {"step": 28, "philosopher": 1, "state": "Thinking", "message": "P1 LEFT the room after releasing both forks. Current room occupancy: 2/3.", "philosophers": ["Waiting", "Thinking", "Waiting", "Hungry"], "forks": [null, null, null, 0], "held_forks": [[3], [], [], []], "waiting_for": [0, null, 1, null], "rounds": [0, 0, 0, 0]}, {"step": 29, "philosopher": 1, "state": "Thinking", "message": "P1 completed round 1", "philosophers": ["Waiting", "Thinking", "Waiting", "Hungry"], "forks": [null, null, null, 0], "held_forks": [[3], [], [], []], "waiting_for": [0, null, 1, null], "rounds": [0, 1, 0, 0]}, {"step": 30, "philosopher": 1, "state": "Thinking", "message": "P1 is THINKING", "philosophers": ["Waiting", "Thinking", "Waiting", "Hungry"], "forks": [null, null, null, 0], "held_forks": [[3], [], [], []], "waiting_for": [0, null, 1, null], "rounds": [0, 1, 0, 0]}, {"step": 31, "philosopher": 2, "state": "Holding", "message": "P2 successfully acquired F1. FIFO ticket 1. Exclusive ownership verified.", "philosophers": ["Waiting", "Thinking", "Holding", "Hungry"], "forks": [null, 2, null, 0], "held_forks": [[3], [], [1], []], "waiting_for": [0, null, null, null], "rounds": [0, 1, 0, 0]}, {"step": 32, "philosopher": 2, "state": "Waiting", "message": "P2 is WAITING for F2 while holding [1]", "philosophers": ["Waiting", "Thinking", "Waiting", "Hungry"], "forks": [null, 2, null, 0], "held_forks": [[3], [], [1], []], "waiting_for": [0, null, 2, null], "rounds": [0, 1, 0, 0]}, {"step": 33, "philosopher": 2, "state": "Holding", "message": "P2 successfully acquired F2. FIFO ticket 0. Exclusive ownership verified.", "philosophers": ["Waiting", "Thinking", "Holding", "Hungry"], "forks": [null, 2, 2, 0], "held_forks": [[3], [], [1, 2], []], "waiting_for": [0, null, null, null], "rounds": [0, 1, 0, 0]}, {"step": 34, "philosopher": 0, "state": "Holding", "message": "P0 successfully acquired F0. FIFO ticket 1. Exclusive ownership verified.", "philosophers": ["Holding", "Thinking", "Holding", "Hungry"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [0, 1, 0, 0]}, {"step": 35, "philosopher": 3, "state": "Hungry", "message": "P3 ENTERED the room. Room FIFO ticket: 3. Current room occupancy: 3/3.", "philosophers": ["Holding", "Thinking", "Holding", "Hungry"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [0, 1, 0, 0]}, {"step": 36, "philosopher": 3, "state": "Waiting", "message": "P3 is WAITING for F2 while holding []", "philosophers": ["Holding", "Thinking", "Holding", "Waiting"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [0, 1, 0, 0]}, {"step": 37, "philosopher": 0, "state": "Eating", "message": "P0 acquired F3 and F0. P0 is EATING.", "philosophers": ["Eating", "Thinking", "Holding", "Waiting"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [0, 1, 0, 0]}, {"step": 38, "philosopher": 2, "state": "Eating", "message": "P2 acquired F1 and F2. P2 is EATING.", "philosophers": ["Eating", "Thinking", "Eating", "Waiting"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [0, 1, 0, 0]}, {"step": 39, "philosopher": 0, "state": "Releasing", "message": "P0 is RELEASING both forks", "philosophers": ["Releasing", "Thinking", "Eating", "Waiting"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [0, 1, 0, 0]}, {"step": 40, "philosopher": 0, "state": "Releasing", "message": "P0 released F0. Fork is now FREE.", "philosophers": ["Releasing", "Thinking", "Eating", "Waiting"], "forks": [null, 2, 2, 0], "held_forks": [[3], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [0, 1, 0, 0]}, {"step": 41, "philosopher": 0, "state": "Releasing", "message": "P0 released F3. Fork is now FREE.", "philosophers": ["Releasing", "Thinking", "Eating", "Waiting"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [0, 1, 0, 0]}, {"step": 42, "philosopher": 0, "state": "Thinking", "message": "P0 LEFT the room after releasing both forks. Current room occupancy: 2/3.", "philosophers": ["Thinking", "Thinking", "Eating", "Waiting"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [0, 1, 0, 0]}, {"step": 43, "philosopher": 0, "state": "Thinking", "message": "P0 completed round 1", "philosophers": ["Thinking", "Thinking", "Eating", "Waiting"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 44, "philosopher": 0, "state": "Thinking", "message": "P0 is THINKING", "philosophers": ["Thinking", "Thinking", "Eating", "Waiting"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 45, "philosopher": 1, "state": "Hungry", "message": "P1 is HUNGRY (Round 2)", "philosophers": ["Thinking", "Hungry", "Eating", "Waiting"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 46, "philosopher": 1, "state": "Hungry", "message": "P1 is REQUESTING room access (FIFO queue).", "philosophers": ["Thinking", "Hungry", "Eating", "Waiting"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 47, "philosopher": 1, "state": "Hungry", "message": "P1 ENTERED the room. Room FIFO ticket: 4. Current room occupancy: 3/3.", "philosophers": ["Thinking", "Hungry", "Eating", "Waiting"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 48, "philosopher": 1, "state": "Waiting", "message": "P1 is WAITING for F0 while holding []", "philosophers": ["Thinking", "Waiting", "Eating", "Waiting"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, 0, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 49, "philosopher": 1, "state": "Holding", "message": "P1 successfully acquired F0. FIFO ticket 2. Exclusive ownership verified.", "philosophers": ["Thinking", "Holding", "Eating", "Waiting"], "forks": [1, 2, 2, null], "held_forks": [[], [0], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 50, "philosopher": 1, "state": "Waiting", "message": "P1 is WAITING for F1 while holding [0]", "philosophers": ["Thinking", "Waiting", "Eating", "Waiting"], "forks": [1, 2, 2, null], "held_forks": [[], [0], [1, 2], []], "waiting_for": [null, 1, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 51, "philosopher": 2, "state": "Releasing", "message": "P2 is RELEASING both forks", "philosophers": ["Thinking", "Waiting", "Releasing", "Waiting"], "forks": [1, 2, 2, null], "held_forks": [[], [0], [1, 2], []], "waiting_for": [null, 1, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 52, "philosopher": 2, "state": "Releasing", "message": "P2 released F2. Fork is now FREE.", "philosophers": ["Thinking", "Waiting", "Releasing", "Waiting"], "forks": [1, 2, null, null], "held_forks": [[], [0], [1], []], "waiting_for": [null, 1, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 53, "philosopher": 2, "state": "Releasing", "message": "P2 released F1. Fork is now FREE.", "philosophers": ["Thinking", "Waiting", "Releasing", "Waiting"], "forks": [1, null, null, null], "held_forks": [[], [0], [], []], "waiting_for": [null, 1, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 54, "philosopher": 2, "state": "Thinking", "message": "P2 LEFT the room after releasing both forks. Current room occupancy: 2/3.", "philosophers": ["Thinking", "Waiting", "Thinking", "Waiting"], "forks": [1, null, null, null], "held_forks": [[], [0], [], []], "waiting_for": [null, 1, null, 2], "rounds": [1, 1, 0, 0]}, {"step": 55, "philosopher": 3, "state": "Holding", "message": "P3 successfully acquired F2. FIFO ticket 1. Exclusive ownership verified.", "philosophers": ["Thinking", "Waiting", "Thinking", "Holding"], "forks": [1, null, 3, null], "held_forks": [[], [0], [], [2]], "waiting_for": [null, 1, null, null], "rounds": [1, 1, 0, 0]}, {"step": 56, "philosopher": 1, "state": "Holding", "message": "P1 successfully acquired F1. FIFO ticket 2. Exclusive ownership verified.", "philosophers": ["Thinking", "Holding", "Thinking", "Holding"], "forks": [1, 1, 3, null], "held_forks": [[], [0, 1], [], [2]], "waiting_for": [null, null, null, null], "rounds": [1, 1, 0, 0]}, {"step": 57, "philosopher": 1, "state": "Eating", "message": "P1 acquired F0 and F1. P1 is EATING.", "philosophers": ["Thinking", "Eating", "Thinking", "Holding"], "forks": [1, 1, 3, null], "held_forks": [[], [0, 1], [], [2]], "waiting_for": [null, null, null, null], "rounds": [1, 1, 0, 0]}, {"step": 58, "philosopher": 3, "state": "Waiting", "message": "P3 is WAITING for F3 while holding [2]", "philosophers": ["Thinking", "Eating", "Thinking", "Waiting"], "forks": [1, 1, 3, null], "held_forks": [[], [0, 1], [], [2]], "waiting_for": [null, null, null, 3], "rounds": [1, 1, 0, 0]}, {"step": 59, "philosopher": 2, "state": "Thinking", "message": "P2 completed round 1", "philosophers": ["Thinking", "Eating", "Thinking", "Waiting"], "forks": [1, 1, 3, null], "held_forks": [[], [0, 1], [], [2]], "waiting_for": [null, null, null, 3], "rounds": [1, 1, 1, 0]}, {"step": 60, "philosopher": 2, "state": "Thinking", "message": "P2 is THINKING", "philosophers": ["Thinking", "Eating", "Thinking", "Waiting"], "forks": [1, 1, 3, null], "held_forks": [[], [0, 1], [], [2]], "waiting_for": [null, null, null, 3], "rounds": [1, 1, 1, 0]}, {"step": 61, "philosopher": 3, "state": "Holding", "message": "P3 successfully acquired F3. FIFO ticket 1. Exclusive ownership verified.", "philosophers": ["Thinking", "Eating", "Thinking", "Holding"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 62, "philosopher": 3, "state": "Eating", "message": "P3 acquired F2 and F3. P3 is EATING.", "philosophers": ["Thinking", "Eating", "Thinking", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 63, "philosopher": 0, "state": "Hungry", "message": "P0 is HUNGRY (Round 2)", "philosophers": ["Hungry", "Eating", "Thinking", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 64, "philosopher": 0, "state": "Hungry", "message": "P0 is REQUESTING room access (FIFO queue).", "philosophers": ["Hungry", "Eating", "Thinking", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 65, "philosopher": 0, "state": "Hungry", "message": "P0 ENTERED the room. Room FIFO ticket: 5. Current room occupancy: 3/3.", "philosophers": ["Hungry", "Eating", "Thinking", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 66, "philosopher": 0, "state": "Waiting", "message": "P0 is WAITING for F3 while holding []", "philosophers": ["Waiting", "Eating", "Thinking", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [3, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 67, "philosopher": 3, "state": "Releasing", "message": "P3 is RELEASING both forks", "philosophers": ["Waiting", "Eating", "Thinking", "Releasing"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [3, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 68, "philosopher": 3, "state": "Releasing", "message": "P3 released F3. Fork is now FREE.", "philosophers": ["Waiting", "Eating", "Thinking", "Releasing"], "forks": [1, 1, 3, null], "held_forks": [[], [0, 1], [], [2]], "waiting_for": [3, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 69, "philosopher": 3, "state": "Releasing", "message": "P3 released F2. Fork is now FREE.", "philosophers": ["Waiting", "Eating", "Thinking", "Releasing"], "forks": [1, 1, null, null], "held_forks": [[], [0, 1], [], []], "waiting_for": [3, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 70, "philosopher": 0, "state": "Holding", "message": "P0 successfully acquired F3. FIFO ticket 2. Exclusive ownership verified.", "philosophers": ["Holding", "Eating", "Thinking", "Releasing"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 71, "philosopher": 0, "state": "Waiting", "message": "P0 is WAITING for F0 while holding [3]", "philosophers": ["Waiting", "Eating", "Thinking", "Releasing"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 72, "philosopher": 3, "state": "Thinking", "message": "P3 LEFT the room after releasing both forks. Current room occupancy: 2/3.", "philosophers": ["Waiting", "Eating", "Thinking", "Thinking"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, null, null], "rounds": [1, 1, 1, 0]}, {"step": 73, "philosopher": 3, "state": "Thinking", "message": "P3 completed round 1", "philosophers": ["Waiting", "Eating", "Thinking", "Thinking"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, null, null], "rounds": [1, 1, 1, 1]}, {"step": 74, "philosopher": 3, "state": "Thinking", "message": "P3 is THINKING", "philosophers": ["Waiting", "Eating", "Thinking", "Thinking"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, null, null], "rounds": [1, 1, 1, 1]}, {"step": 75, "philosopher": 1, "state": "Releasing", "message": "P1 is RELEASING both forks", "philosophers": ["Waiting", "Releasing", "Thinking", "Thinking"], "forks": [1, 1, null, 0], "held_forks": [[3], [0, 1], [], []], "waiting_for": [0, null, null, null], "rounds": [1, 1, 1, 1]}, {"step": 76, "philosopher": 1, "state": "Releasing", "message": "P1 released F1. Fork is now FREE.", "philosophers": ["Waiting", "Releasing", "Thinking", "Thinking"], "forks": [1, null, null, 0], "held_forks": [[3], [0], [], []], "waiting_for": [0, null, null, null], "rounds": [1, 1, 1, 1]}, {"step": 77, "philosopher": 1, "state": "Releasing", "message": "P1 released F0. Fork is now FREE.", "philosophers": ["Waiting", "Releasing", "Thinking", "Thinking"], "forks": [null, null, null, 0], "held_forks": [[3], [], [], []], "waiting_for": [0, null, null, null], "rounds": [1, 1, 1, 1]}, {"step": 78, "philosopher": 1, "state": "Thinking", "message": "P1 LEFT the room after releasing both forks. Current room occupancy: 1/3.", "philosophers": ["Waiting", "Thinking", "Thinking", "Thinking"], "forks": [null, null, null, 0], "held_forks": [[3], [], [], []], "waiting_for": [0, null, null, null], "rounds": [1, 1, 1, 1]}, {"step": 79, "philosopher": 1, "state": "Thinking", "message": "P1 completed round 2", "philosophers": ["Waiting", "Thinking", "Thinking", "Thinking"], "forks": [null, null, null, 0], "held_forks": [[3], [], [], []], "waiting_for": [0, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 80, "philosopher": 1, "state": "Thinking", "message": "P1 is THINKING", "philosophers": ["Waiting", "Thinking", "Thinking", "Thinking"], "forks": [null, null, null, 0], "held_forks": [[3], [], [], []], "waiting_for": [0, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 81, "philosopher": 0, "state": "Holding", "message": "P0 successfully acquired F0. FIFO ticket 3. Exclusive ownership verified.", "philosophers": ["Holding", "Thinking", "Thinking", "Thinking"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 82, "philosopher": 0, "state": "Eating", "message": "P0 acquired F3 and F0. P0 is EATING.", "philosophers": ["Eating", "Thinking", "Thinking", "Thinking"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 83, "philosopher": 2, "state": "Hungry", "message": "P2 is HUNGRY (Round 2)", "philosophers": ["Eating", "Thinking", "Hungry", "Thinking"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 84, "philosopher": 2, "state": "Hungry", "message": "P2 is REQUESTING room access (FIFO queue).", "philosophers": ["Eating", "Thinking", "Hungry", "Thinking"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 85, "philosopher": 2, "state": "Hungry", "message": "P2 ENTERED the room. Room FIFO ticket: 6. Current room occupancy: 2/3.", "philosophers": ["Eating", "Thinking", "Hungry", "Thinking"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 86, "philosopher": 2, "state": "Waiting", "message": "P2 is WAITING for F1 while holding []", "philosophers": ["Eating", "Thinking", "Waiting", "Thinking"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, 1, null], "rounds": [1, 2, 1, 1]}, {"step": 87, "philosopher": 2, "state": "Holding", "message": "P2 successfully acquired F1. FIFO ticket 3. Exclusive ownership verified.", "philosophers": ["Eating", "Thinking", "Holding", "Thinking"], "forks": [0, 2, null, 0], "held_forks": [[3, 0], [], [1], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 88, "philosopher": 2, "state": "Waiting", "message": "P2 is WAITING for F2 while holding [1]", "philosophers": ["Eating", "Thinking", "Waiting", "Thinking"], "forks": [0, 2, null, 0], "held_forks": [[3, 0], [], [1], []], "waiting_for": [null, null, 2, null], "rounds": [1, 2, 1, 1]}, {"step": 89, "philosopher": 2, "state": "Holding", "message": "P2 successfully acquired F2. FIFO ticket 2. Exclusive ownership verified.", "philosophers": ["Eating", "Thinking", "Holding", "Thinking"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 90, "philosopher": 2, "state": "Eating", "message": "P2 acquired F1 and F2. P2 is EATING.", "philosophers": ["Eating", "Thinking", "Eating", "Thinking"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 91, "philosopher": 2, "state": "Releasing", "message": "P2 is RELEASING both forks", "philosophers": ["Eating", "Thinking", "Releasing", "Thinking"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 92, "philosopher": 2, "state": "Releasing", "message": "P2 released F2. Fork is now FREE.", "philosophers": ["Eating", "Thinking", "Releasing", "Thinking"], "forks": [0, 2, null, 0], "held_forks": [[3, 0], [], [1], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 93, "philosopher": 2, "state": "Releasing", "message": "P2 released F1. Fork is now FREE.", "philosophers": ["Eating", "Thinking", "Releasing", "Thinking"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 94, "philosopher": 2, "state": "Thinking", "message": "P2 LEFT the room after releasing both forks. Current room occupancy: 1/3.", "philosophers": ["Eating", "Thinking", "Thinking", "Thinking"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 1, 1]}, {"step": 95, "philosopher": 2, "state": "Thinking", "message": "P2 completed round 2", "philosophers": ["Eating", "Thinking", "Thinking", "Thinking"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 2, 1]}, {"step": 96, "philosopher": 2, "state": "Thinking", "message": "P2 is THINKING", "philosophers": ["Eating", "Thinking", "Thinking", "Thinking"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 2, 1]}, {"step": 97, "philosopher": 3, "state": "Hungry", "message": "P3 is HUNGRY (Round 2)", "philosophers": ["Eating", "Thinking", "Thinking", "Hungry"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 2, 1]}, {"step": 98, "philosopher": 3, "state": "Hungry", "message": "P3 is REQUESTING room access (FIFO queue).", "philosophers": ["Eating", "Thinking", "Thinking", "Hungry"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 2, 1]}, {"step": 99, "philosopher": 3, "state": "Hungry", "message": "P3 ENTERED the room. Room FIFO ticket: 7. Current room occupancy: 2/3.", "philosophers": ["Eating", "Thinking", "Thinking", "Hungry"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, null], "rounds": [1, 2, 2, 1]}, {"step": 100, "philosopher": 3, "state": "Waiting", "message": "P3 is WAITING for F2 while holding []", "philosophers": ["Eating", "Thinking", "Thinking", "Waiting"], "forks": [0, null, null, 0], "held_forks": [[3, 0], [], [], []], "waiting_for": [null, null, null, 2], "rounds": [1, 2, 2, 1]}, {"step": 101, "philosopher": 3, "state": "Holding", "message": "P3 successfully acquired F2. FIFO ticket 3. Exclusive ownership verified.", "philosophers": ["Eating", "Thinking", "Thinking", "Holding"], "forks": [0, null, 3, 0], "held_forks": [[3, 0], [], [], [2]], "waiting_for": [null, null, null, null], "rounds": [1, 2, 2, 1]}, {"step": 102, "philosopher": 3, "state": "Waiting", "message": "P3 is WAITING for F3 while holding [2]", "philosophers": ["Eating", "Thinking", "Thinking", "Waiting"], "forks": [0, null, 3, 0], "held_forks": [[3, 0], [], [], [2]], "waiting_for": [null, null, null, 3], "rounds": [1, 2, 2, 1]}, {"step": 103, "philosopher": 1, "state": "Hungry", "message": "P1 is HUNGRY (Round 3)", "philosophers": ["Eating", "Hungry", "Thinking", "Waiting"], "forks": [0, null, 3, 0], "held_forks": [[3, 0], [], [], [2]], "waiting_for": [null, null, null, 3], "rounds": [1, 2, 2, 1]}, {"step": 104, "philosopher": 1, "state": "Hungry", "message": "P1 is REQUESTING room access (FIFO queue).", "philosophers": ["Eating", "Hungry", "Thinking", "Waiting"], "forks": [0, null, 3, 0], "held_forks": [[3, 0], [], [], [2]], "waiting_for": [null, null, null, 3], "rounds": [1, 2, 2, 1]}, {"step": 105, "philosopher": 1, "state": "Hungry", "message": "P1 ENTERED the room. Room FIFO ticket: 8. Current room occupancy: 3/3.", "philosophers": ["Eating", "Hungry", "Thinking", "Waiting"], "forks": [0, null, 3, 0], "held_forks": [[3, 0], [], [], [2]], "waiting_for": [null, null, null, 3], "rounds": [1, 2, 2, 1]}, {"step": 106, "philosopher": 1, "state": "Waiting", "message": "P1 is WAITING for F0 while holding []", "philosophers": ["Eating", "Waiting", "Thinking", "Waiting"], "forks": [0, null, 3, 0], "held_forks": [[3, 0], [], [], [2]], "waiting_for": [null, 0, null, 3], "rounds": [1, 2, 2, 1]}, {"step": 107, "philosopher": 0, "state": "Releasing", "message": "P0 is RELEASING both forks", "philosophers": ["Releasing", "Waiting", "Thinking", "Waiting"], "forks": [0, null, 3, 0], "held_forks": [[3, 0], [], [], [2]], "waiting_for": [null, 0, null, 3], "rounds": [1, 2, 2, 1]}, {"step": 108, "philosopher": 0, "state": "Releasing", "message": "P0 released F0. Fork is now FREE.", "philosophers": ["Releasing", "Waiting", "Thinking", "Waiting"], "forks": [null, null, 3, 0], "held_forks": [[3], [], [], [2]], "waiting_for": [null, 0, null, 3], "rounds": [1, 2, 2, 1]}, {"step": 109, "philosopher": 0, "state": "Releasing", "message": "P0 released F3. Fork is now FREE.", "philosophers": ["Releasing", "Waiting", "Thinking", "Waiting"], "forks": [null, null, 3, null], "held_forks": [[], [], [], [2]], "waiting_for": [null, 0, null, 3], "rounds": [1, 2, 2, 1]}, {"step": 110, "philosopher": 0, "state": "Thinking", "message": "P0 LEFT the room after releasing both forks. Current room occupancy: 2/3.", "philosophers": ["Thinking", "Waiting", "Thinking", "Waiting"], "forks": [null, null, 3, null], "held_forks": [[], [], [], [2]], "waiting_for": [null, 0, null, 3], "rounds": [1, 2, 2, 1]}, {"step": 111, "philosopher": 0, "state": "Thinking", "message": "P0 completed round 2", "philosophers": ["Thinking", "Waiting", "Thinking", "Waiting"], "forks": [null, null, 3, null], "held_forks": [[], [], [], [2]], "waiting_for": [null, 0, null, 3], "rounds": [2, 2, 2, 1]}, {"step": 112, "philosopher": 0, "state": "Thinking", "message": "P0 is THINKING", "philosophers": ["Thinking", "Waiting", "Thinking", "Waiting"], "forks": [null, null, 3, null], "held_forks": [[], [], [], [2]], "waiting_for": [null, 0, null, 3], "rounds": [2, 2, 2, 1]}, {"step": 113, "philosopher": 3, "state": "Holding", "message": "P3 successfully acquired F3. FIFO ticket 3. Exclusive ownership verified.", "philosophers": ["Thinking", "Waiting", "Thinking", "Holding"], "forks": [null, null, 3, 3], "held_forks": [[], [], [], [2, 3]], "waiting_for": [null, 0, null, null], "rounds": [2, 2, 2, 1]}, {"step": 114, "philosopher": 3, "state": "Eating", "message": "P3 acquired F2 and F3. P3 is EATING.", "philosophers": ["Thinking", "Waiting", "Thinking", "Eating"], "forks": [null, null, 3, 3], "held_forks": [[], [], [], [2, 3]], "waiting_for": [null, 0, null, null], "rounds": [2, 2, 2, 1]}, {"step": 115, "philosopher": 1, "state": "Holding", "message": "P1 successfully acquired F0. FIFO ticket 4. Exclusive ownership verified.", "philosophers": ["Thinking", "Holding", "Thinking", "Eating"], "forks": [1, null, 3, 3], "held_forks": [[], [0], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [2, 2, 2, 1]}, {"step": 116, "philosopher": 1, "state": "Waiting", "message": "P1 is WAITING for F1 while holding [0]", "philosophers": ["Thinking", "Waiting", "Thinking", "Eating"], "forks": [1, null, 3, 3], "held_forks": [[], [0], [], [2, 3]], "waiting_for": [null, 1, null, null], "rounds": [2, 2, 2, 1]}, {"step": 117, "philosopher": 1, "state": "Holding", "message": "P1 successfully acquired F1. FIFO ticket 4. Exclusive ownership verified.", "philosophers": ["Thinking", "Holding", "Thinking", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [2, 2, 2, 1]}, {"step": 118, "philosopher": 1, "state": "Eating", "message": "P1 acquired F0 and F1. P1 is EATING.", "philosophers": ["Thinking", "Eating", "Thinking", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [2, 2, 2, 1]}, {"step": 119, "philosopher": 2, "state": "Hungry", "message": "P2 is HUNGRY (Round 3)", "philosophers": ["Thinking", "Eating", "Hungry", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [2, 2, 2, 1]}, {"step": 120, "philosopher": 2, "state": "Hungry", "message": "P2 is REQUESTING room access (FIFO queue).", "philosophers": ["Thinking", "Eating", "Hungry", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [2, 2, 2, 1]}, {"step": 121, "philosopher": 2, "state": "Hungry", "message": "P2 ENTERED the room. Room FIFO ticket: 9. Current room occupancy: 3/3.", "philosophers": ["Thinking", "Eating", "Hungry", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [2, 2, 2, 1]}, {"step": 122, "philosopher": 2, "state": "Waiting", "message": "P2 is WAITING for F1 while holding []", "philosophers": ["Thinking", "Eating", "Waiting", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, 1, null], "rounds": [2, 2, 2, 1]}, {"step": 123, "philosopher": 0, "state": "Hungry", "message": "P0 is HUNGRY (Round 3)", "philosophers": ["Hungry", "Eating", "Waiting", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, 1, null], "rounds": [2, 2, 2, 1]}, {"step": 124, "philosopher": 0, "state": "Hungry", "message": "P0 is REQUESTING room access (FIFO queue).", "philosophers": ["Hungry", "Eating", "Waiting", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, 1, null], "rounds": [2, 2, 2, 1]}, {"step": 125, "philosopher": 1, "state": "Releasing", "message": "P1 is RELEASING both forks", "philosophers": ["Hungry", "Releasing", "Waiting", "Eating"], "forks": [1, 1, 3, 3], "held_forks": [[], [0, 1], [], [2, 3]], "waiting_for": [null, null, 1, null], "rounds": [2, 2, 2, 1]}, {"step": 126, "philosopher": 1, "state": "Releasing", "message": "P1 released F1. Fork is now FREE.", "philosophers": ["Hungry", "Releasing", "Waiting", "Eating"], "forks": [1, null, 3, 3], "held_forks": [[], [0], [], [2, 3]], "waiting_for": [null, null, 1, null], "rounds": [2, 2, 2, 1]}, {"step": 127, "philosopher": 1, "state": "Releasing", "message": "P1 released F0. Fork is now FREE.", "philosophers": ["Hungry", "Releasing", "Waiting", "Eating"], "forks": [null, null, 3, 3], "held_forks": [[], [], [], [2, 3]], "waiting_for": [null, null, 1, null], "rounds": [2, 2, 2, 1]}, {"step": 128, "philosopher": 2, "state": "Holding", "message": "P2 successfully acquired F1. FIFO ticket 5. Exclusive ownership verified.", "philosophers": ["Hungry", "Releasing", "Holding", "Eating"], "forks": [null, 2, 3, 3], "held_forks": [[], [], [1], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [2, 2, 2, 1]}, {"step": 129, "philosopher": 2, "state": "Waiting", "message": "P2 is WAITING for F2 while holding [1]", "philosophers": ["Hungry", "Releasing", "Waiting", "Eating"], "forks": [null, 2, 3, 3], "held_forks": [[], [], [1], [2, 3]], "waiting_for": [null, null, 2, null], "rounds": [2, 2, 2, 1]}, {"step": 130, "philosopher": 1, "state": "Thinking", "message": "P1 LEFT the room after releasing both forks. Current room occupancy: 2/3.", "philosophers": ["Hungry", "Thinking", "Waiting", "Eating"], "forks": [null, 2, 3, 3], "held_forks": [[], [], [1], [2, 3]], "waiting_for": [null, null, 2, null], "rounds": [2, 2, 2, 1]}, {"step": 131, "philosopher": 1, "state": "Thinking", "message": "P1 completed round 3", "philosophers": ["Hungry", "Thinking", "Waiting", "Eating"], "forks": [null, 2, 3, 3], "held_forks": [[], [], [1], [2, 3]], "waiting_for": [null, null, 2, null], "rounds": [2, 3, 2, 1]}, {"step": 132, "philosopher": 1, "state": "Finished", "message": "P1 has FINISHED all meals", "philosophers": ["Hungry", "Finished", "Waiting", "Eating"], "forks": [null, 2, 3, 3], "held_forks": [[], [], [1], [2, 3]], "waiting_for": [null, null, 2, null], "rounds": [2, 3, 2, 1]}, {"step": 133, "philosopher": 0, "state": "Hungry", "message": "P0 ENTERED the room. Room FIFO ticket: 10. Current room occupancy: 3/3.", "philosophers": ["Hungry", "Finished", "Waiting", "Eating"], "forks": [null, 2, 3, 3], "held_forks": [[], [], [1], [2, 3]], "waiting_for": [null, null, 2, null], "rounds": [2, 3, 2, 1]}, {"step": 134, "philosopher": 0, "state": "Waiting", "message": "P0 is WAITING for F3 while holding []", "philosophers": ["Waiting", "Finished", "Waiting", "Eating"], "forks": [null, 2, 3, 3], "held_forks": [[], [], [1], [2, 3]], "waiting_for": [3, null, 2, null], "rounds": [2, 3, 2, 1]}, {"step": 135, "philosopher": 3, "state": "Releasing", "message": "P3 is RELEASING both forks", "philosophers": ["Waiting", "Finished", "Waiting", "Releasing"], "forks": [null, 2, 3, 3], "held_forks": [[], [], [1], [2, 3]], "waiting_for": [3, null, 2, null], "rounds": [2, 3, 2, 1]}, {"step": 136, "philosopher": 3, "state": "Releasing", "message": "P3 released F3. Fork is now FREE.", "philosophers": ["Waiting", "Finished", "Waiting", "Releasing"], "forks": [null, 2, 3, null], "held_forks": [[], [], [1], [2]], "waiting_for": [3, null, 2, null], "rounds": [2, 3, 2, 1]}, {"step": 137, "philosopher": 0, "state": "Holding", "message": "P0 successfully acquired F3. FIFO ticket 4. Exclusive ownership verified.", "philosophers": ["Holding", "Finished", "Waiting", "Releasing"], "forks": [null, 2, 3, 0], "held_forks": [[3], [], [1], [2]], "waiting_for": [null, null, 2, null], "rounds": [2, 3, 2, 1]}, {"step": 138, "philosopher": 3, "state": "Releasing", "message": "P3 released F2. Fork is now FREE.", "philosophers": ["Holding", "Finished", "Waiting", "Releasing"], "forks": [null, 2, null, 0], "held_forks": [[3], [], [1], []], "waiting_for": [null, null, 2, null], "rounds": [2, 3, 2, 1]}, {"step": 139, "philosopher": 0, "state": "Waiting", "message": "P0 is WAITING for F0 while holding [3]", "philosophers": ["Waiting", "Finished", "Waiting", "Releasing"], "forks": [null, 2, null, 0], "held_forks": [[3], [], [1], []], "waiting_for": [0, null, 2, null], "rounds": [2, 3, 2, 1]}, {"step": 140, "philosopher": 2, "state": "Holding", "message": "P2 successfully acquired F2. FIFO ticket 4. Exclusive ownership verified.", "philosophers": ["Waiting", "Finished", "Holding", "Releasing"], "forks": [null, 2, 2, 0], "held_forks": [[3], [], [1, 2], []], "waiting_for": [0, null, null, null], "rounds": [2, 3, 2, 1]}, {"step": 141, "philosopher": 3, "state": "Thinking", "message": "P3 LEFT the room after releasing both forks. Current room occupancy: 2/3.", "philosophers": ["Waiting", "Finished", "Holding", "Thinking"], "forks": [null, 2, 2, 0], "held_forks": [[3], [], [1, 2], []], "waiting_for": [0, null, null, null], "rounds": [2, 3, 2, 1]}, {"step": 142, "philosopher": 0, "state": "Holding", "message": "P0 successfully acquired F0. FIFO ticket 5. Exclusive ownership verified.", "philosophers": ["Holding", "Finished", "Holding", "Thinking"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [2, 3, 2, 1]}, {"step": 143, "philosopher": 3, "state": "Thinking", "message": "P3 completed round 2", "philosophers": ["Holding", "Finished", "Holding", "Thinking"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [2, 3, 2, 2]}, {"step": 144, "philosopher": 2, "state": "Eating", "message": "P2 acquired F1 and F2. P2 is EATING.", "philosophers": ["Holding", "Finished", "Eating", "Thinking"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [2, 3, 2, 2]}, {"step": 145, "philosopher": 3, "state": "Thinking", "message": "P3 is THINKING", "philosophers": ["Holding", "Finished", "Eating", "Thinking"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [2, 3, 2, 2]}, {"step": 146, "philosopher": 0, "state": "Eating", "message": "P0 acquired F3 and F0. P0 is EATING.", "philosophers": ["Eating", "Finished", "Eating", "Thinking"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [2, 3, 2, 2]}, {"step": 147, "philosopher": 0, "state": "Releasing", "message": "P0 is RELEASING both forks", "philosophers": ["Releasing", "Finished", "Eating", "Thinking"], "forks": [0, 2, 2, 0], "held_forks": [[3, 0], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [2, 3, 2, 2]}, {"step": 148, "philosopher": 0, "state": "Releasing", "message": "P0 released F0. Fork is now FREE.", "philosophers": ["Releasing", "Finished", "Eating", "Thinking"], "forks": [null, 2, 2, 0], "held_forks": [[3], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [2, 3, 2, 2]}, {"step": 149, "philosopher": 0, "state": "Releasing", "message": "P0 released F3. Fork is now FREE.", "philosophers": ["Releasing", "Finished", "Eating", "Thinking"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [2, 3, 2, 2]}, {"step": 150, "philosopher": 0, "state": "Thinking", "message": "P0 LEFT the room after releasing both forks. Current room occupancy: 1/3.", "philosophers": ["Thinking", "Finished", "Eating", "Thinking"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [2, 3, 2, 2]}, {"step": 151, "philosopher": 0, "state": "Thinking", "message": "P0 completed round 3", "philosophers": ["Thinking", "Finished", "Eating", "Thinking"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [3, 3, 2, 2]}, {"step": 152, "philosopher": 0, "state": "Finished", "message": "P0 has FINISHED all meals", "philosophers": ["Finished", "Finished", "Eating", "Thinking"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [3, 3, 2, 2]}, {"step": 153, "philosopher": 3, "state": "Hungry", "message": "P3 is HUNGRY (Round 3)", "philosophers": ["Finished", "Finished", "Eating", "Hungry"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [3, 3, 2, 2]}, {"step": 154, "philosopher": 3, "state": "Hungry", "message": "P3 is REQUESTING room access (FIFO queue).", "philosophers": ["Finished", "Finished", "Eating", "Hungry"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [3, 3, 2, 2]}, {"step": 155, "philosopher": 3, "state": "Hungry", "message": "P3 ENTERED the room. Room FIFO ticket: 11. Current room occupancy: 2/3.", "philosophers": ["Finished", "Finished", "Eating", "Hungry"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, null], "rounds": [3, 3, 2, 2]}, {"step": 156, "philosopher": 3, "state": "Waiting", "message": "P3 is WAITING for F2 while holding []", "philosophers": ["Finished", "Finished", "Eating", "Waiting"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [3, 3, 2, 2]}, {"step": 157, "philosopher": 2, "state": "Releasing", "message": "P2 is RELEASING both forks", "philosophers": ["Finished", "Finished", "Releasing", "Waiting"], "forks": [null, 2, 2, null], "held_forks": [[], [], [1, 2], []], "waiting_for": [null, null, null, 2], "rounds": [3, 3, 2, 2]}, {"step": 158, "philosopher": 2, "state": "Releasing", "message": "P2 released F2. Fork is now FREE.", "philosophers": ["Finished", "Finished", "Releasing", "Waiting"], "forks": [null, 2, null, null], "held_forks": [[], [], [1], []], "waiting_for": [null, null, null, 2], "rounds": [3, 3, 2, 2]}, {"step": 159, "philosopher": 2, "state": "Releasing", "message": "P2 released F1. Fork is now FREE.", "philosophers": ["Finished", "Finished", "Releasing", "Waiting"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, 2], "rounds": [3, 3, 2, 2]}, {"step": 160, "philosopher": 3, "state": "Holding", "message": "P3 successfully acquired F2. FIFO ticket 5. Exclusive ownership verified.", "philosophers": ["Finished", "Finished", "Releasing", "Holding"], "forks": [null, null, 3, null], "held_forks": [[], [], [], [2]], "waiting_for": [null, null, null, null], "rounds": [3, 3, 2, 2]}, {"step": 161, "philosopher": 2, "state": "Thinking", "message": "P2 LEFT the room after releasing both forks. Current room occupancy: 1/3.", "philosophers": ["Finished", "Finished", "Thinking", "Holding"], "forks": [null, null, 3, null], "held_forks": [[], [], [], [2]], "waiting_for": [null, null, null, null], "rounds": [3, 3, 2, 2]}, {"step": 162, "philosopher": 3, "state": "Waiting", "message": "P3 is WAITING for F3 while holding [2]", "philosophers": ["Finished", "Finished", "Thinking", "Waiting"], "forks": [null, null, 3, null], "held_forks": [[], [], [], [2]], "waiting_for": [null, null, null, 3], "rounds": [3, 3, 2, 2]}, {"step": 163, "philosopher": 3, "state": "Holding", "message": "P3 successfully acquired F3. FIFO ticket 5. Exclusive ownership verified.", "philosophers": ["Finished", "Finished", "Thinking", "Holding"], "forks": [null, null, 3, 3], "held_forks": [[], [], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [3, 3, 2, 2]}, {"step": 164, "philosopher": 2, "state": "Thinking", "message": "P2 completed round 3", "philosophers": ["Finished", "Finished", "Thinking", "Holding"], "forks": [null, null, 3, 3], "held_forks": [[], [], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [3, 3, 3, 2]}, {"step": 165, "philosopher": 3, "state": "Eating", "message": "P3 acquired F2 and F3. P3 is EATING.", "philosophers": ["Finished", "Finished", "Thinking", "Eating"], "forks": [null, null, 3, 3], "held_forks": [[], [], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [3, 3, 3, 2]}, {"step": 166, "philosopher": 2, "state": "Finished", "message": "P2 has FINISHED all meals", "philosophers": ["Finished", "Finished", "Finished", "Eating"], "forks": [null, null, 3, 3], "held_forks": [[], [], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [3, 3, 3, 2]}, {"step": 167, "philosopher": 3, "state": "Releasing", "message": "P3 is RELEASING both forks", "philosophers": ["Finished", "Finished", "Finished", "Releasing"], "forks": [null, null, 3, 3], "held_forks": [[], [], [], [2, 3]], "waiting_for": [null, null, null, null], "rounds": [3, 3, 3, 2]}, {"step": 168, "philosopher": 3, "state": "Releasing", "message": "P3 released F3. Fork is now FREE.", "philosophers": ["Finished", "Finished", "Finished", "Releasing"], "forks": [null, null, 3, null], "held_forks": [[], [], [], [2]], "waiting_for": [null, null, null, null], "rounds": [3, 3, 3, 2]}, {"step": 169, "philosopher": 3, "state": "Releasing", "message": "P3 released F2. Fork is now FREE.", "philosophers": ["Finished", "Finished", "Finished", "Releasing"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [3, 3, 3, 2]}, {"step": 170, "philosopher": 3, "state": "Thinking", "message": "P3 LEFT the room after releasing both forks. Current room occupancy: 0/3.", "philosophers": ["Finished", "Finished", "Finished", "Thinking"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [3, 3, 3, 2]}, {"step": 171, "philosopher": 3, "state": "Thinking", "message": "P3 completed round 3", "philosophers": ["Finished", "Finished", "Finished", "Thinking"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [3, 3, 3, 3]}, {"step": 172, "philosopher": 3, "state": "Finished", "message": "P3 has FINISHED all meals", "philosophers": ["Finished", "Finished", "Finished", "Finished"], "forks": [null, null, null, null], "held_forks": [[], [], [], []], "waiting_for": [null, null, null, null], "rounds": [3, 3, 3, 3]}];
+
+let index = 0;
+let timer = null;
+let speed = 850;
+
+
+// --------------------------------------------------
+// Display labels for philosopher states
+// --------------------------------------------------
+
+const displayState = {
+    "Holding": "Acquiring Forks",
+    "Releasing": "Releasing Forks"
+};
+
+
+// --------------------------------------------------
+// Fork movement towards its owner
+// --------------------------------------------------
+
+const forkOffsets = {
+
+    0: {
+        0: [-12, -12],
+        1: [12, 12]
+    },
+
+    1: {
+        1: [12, -12],
+        2: [-12, 12]
+    },
+
+    2: {
+        2: [12, 12],
+        3: [-12, -12]
+    },
+
+    3: {
+        3: [-12, 12],
+        0: [12, -12]
+    }
+
+};
+
+
+// --------------------------------------------------
+// Display an event
+// --------------------------------------------------
+
+function showEvent() {
+
+    if (index >= events.length) {
+
+        pause();
+        return;
+
+    }
+
+    const event = events[index];
+
+
+    // Remove old neighbour animations
+
+    for (let i = 0; i < 4; i++) {
+
+        document.getElementById("p" + i)
+            .classList.remove("leaning");
+
+    }
+
+
+    // Update philosopher positions and states
+
+    for (let i = 0; i < 4; i++) {
+
+        const p = document.getElementById("p" + i);
+
+        const state = event.philosophers[i];
+
+        const held = event.held_forks[i];
+
+        const requested = event.waiting_for[i];
+
+        // Keep the original internal state for CSS styling.
+        p.className =
+            "philosopher " + state.toLowerCase();
+
+        // Use readable labels in the visualization.
+        let label = "P" + i + "<br>" +
+            (displayState[state] || state);
+
+        if (requested !== null) {
+
+            label +=
+                `<br><small class="wait-label">
+                Waiting for F${requested}
+                </small>`;
+
+        }
+
+        if (held.length > 0) {
+
+            label +=
+                `<br><small class="hold-label">
+                Holding ${held.map(f => "F" + f).join(", ")}
+                </small>`;
+
+        }
+
+        p.innerHTML = label;
+
+    }
+
+
+    // When a philosopher waits, their two neighbours
+    // visually lean towards them.
+
+    for (let i = 0; i < 4; i++) {
+
+        if (event.philosophers[i] === "Waiting") {
+
+            const left = (i + 3) % 4;
+            const right = (i + 1) % 4;
+
+            document.getElementById("p" + left)
+                .classList.add("leaning");
+
+            document.getElementById("p" + right)
+                .classList.add("leaning");
+
+        }
+
+    }
+
+
+    // Update fork ownership
+
+    for (let i = 0; i < 4; i++) {
+
+        const f = document.getElementById("f" + i);
+
+        const owner = event.forks[i];
+
+        if (owner === null) {
+
+            f.innerHTML = "F" + i + "<br>Free";
+
+            f.classList.remove("held");
+
+            f.style.transform = "";
+
+        } else {
+
+            f.innerHTML =
+                "F" + i + "<br>Held by P" + owner;
+
+            f.classList.add("held");
+
+            const offset = forkOffsets[i][owner];
+
+            f.style.transform =
+                `translate(${offset[0]}px, ${offset[1]}px) scale(1.1)`;
+
+        }
+
+    }
+
+
+    // Update status panel
+
+    document.getElementById("statuses").innerHTML =
+        event.philosophers.map((state, i) => {
+
+            const held = event.held_forks[i];
+
+            const requested = event.waiting_for[i];
+
+            let details = "";
+
+            if (requested !== null) {
+
+                details +=
+                    `<br><span class="wait-label">
+                    Waiting for F${requested}
+                    </span>`;
+
+            }
+
+            if (held.length > 0) {
+
+                details +=
+                    `<br><span class="hold-label">
+                    Holding: ${held.map(f => "F" + f).join(", ")}
+                    </span>`;
+
+            }
+
+            return `
+                <div class="status">
+                    <strong>P${i}</strong> :
+                    ${displayState[state] || state}
+                    ${details}
+                </div>
+            `;
+
+        }).join("");
+
+
+    // Update fork panel
+
+    document.getElementById("forkInfo").innerHTML =
+        event.forks.map((owner, i) => {
+
+            return `
+                <div class="status">
+                    <strong>F${i}</strong> :
+                    ${
+                        owner === null
+                        ? "Free"
+                        : "Held by P" + owner
+                    }
+                </div>
+            `;
+
+        }).join("");
+
+
+    // Append event to log
+
+    const log = document.getElementById("log");
+
+    const entry = document.createElement("p");
+
+    entry.textContent =
+        "Event " + event.step + ": " + event.message;
+
+    log.appendChild(entry);
+
+    log.scrollTop = log.scrollHeight;
+
+
+    // Event counter
+
+    index++;
+
+    document.getElementById("counter").innerText =
+        "Event " + index + " of " + events.length;
+
+}
+
+
+// --------------------------------------------------
+// Play
+// --------------------------------------------------
+
+function play() {
+
+    if (timer !== null) return;
+
+    if (index >= events.length) return;
+
+    timer = setInterval(() => {
+
+        if (index >= events.length) {
+
+            pause();
+            return;
+
+        }
+
+        showEvent();
+
+    }, speed);
+
+}
+
+
+// --------------------------------------------------
+// Pause
+// --------------------------------------------------
+
+function pause() {
+
+    if (timer !== null) {
+
+        clearInterval(timer);
+
+        timer = null;
+
+    }
+
+}
+
+
+// --------------------------------------------------
+// Next event
+// --------------------------------------------------
+
+function next() {
+
+    pause();
+
+    showEvent();
+
+}
+
+
+// --------------------------------------------------
+// Change speed
+// --------------------------------------------------
+
+function changeSpeed() {
+
+    pause();
+
+    speed = Number(
+        document.getElementById("speed").value
+    );
+
+}
+
+
+// --------------------------------------------------
+// Reset screen
+// --------------------------------------------------
+
+function renderInitial() {
+
+    for (let i = 0; i < 4; i++) {
+
+        const p = document.getElementById("p" + i);
+
+        p.className = "philosopher thinking";
+
+        p.innerHTML =
+            "P" + i + "<br>Thinking";
+
+        const f = document.getElementById("f" + i);
+
+        f.innerHTML =
+            "F" + i + "<br>Free";
+
+        f.classList.remove("held");
+
+        f.style.transform = "";
+
+    }
+
+    document.getElementById("statuses").innerHTML = "";
+
+    document.getElementById("forkInfo").innerHTML = "";
+
+    document.getElementById("log").innerHTML = "";
+
+    document.getElementById("counter").innerText =
+        "Event 0 of " + events.length;
+
+}
+
+
+// --------------------------------------------------
+// Restart
+// --------------------------------------------------
+
+function restart() {
+
+    pause();
+
+    index = 0;
+
+    renderInitial();
+
+}
+
+
+// Initial display
+
+renderInitial();
+
+</script>
+
+</body>
+
+</html>
